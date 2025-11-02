@@ -40,6 +40,8 @@ Bottom level categories:
 
 ## Unreleased
 
+- Added support for binding arrays of storage textures on Metal. By @msvbg in [#8464](https://github.com/gfx-rs/wgpu/pull/8464)
+
 ## v27.0.4 (2025-10-23)
 
 This release includes `wgpu-hal` version `27.0.4`. All other crates remain at their previous versions.
