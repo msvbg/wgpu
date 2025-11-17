@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(RUST_LOG=wgpu_hal=debug cargo run:*)",
+      "Bash(env RUST_LOG=wgpu_hal=debug cargo test:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo clean:*)",
+      "Bash(find:*)",
+      "Bash(tee:*)",
+      "Bash(1)",
+      "Bash(command -v cargo-nextest:*)",
+      "Bash(cargo install:*)",
+      "Bash(cargo nextest run:*)",
+      "Bash(xargs cat:*)",
+      "Bash(cargo tree:*)",
+      "Bash(git -C /Users/martin/.cargo/git/checkouts/metal-rs-38c657a6aaa55e25/a4866ca log:*)",
+      "Bash(git -C /Users/martin/.cargo/git/checkouts/metal-rs-38c657a6aaa55e25/a4866ca show --stat)",
+      "WebSearch",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(git log:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
