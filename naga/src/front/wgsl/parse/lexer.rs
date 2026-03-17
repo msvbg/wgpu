@@ -555,12 +555,12 @@ impl<'a> Lexer<'a> {
     pub(in crate::front::wgsl) fn next_format_generic(
         &mut self,
     ) -> Result<'a, (crate::StorageFormat, crate::StorageAccess)> {
-        self.expect(Token::Paren('<'))?;
+        self.expect_generic_paren('<')?;
         let (ident, ident_span) = self.next_ident_with_span()?;
         let format = conv::map_storage_format(ident, ident_span)?;
         self.expect(Token::Separator(','))?;
         let access = self.next_storage_access()?;
-        self.expect(Token::Paren('>'))?;
+        self.expect_generic_paren('>')?;
         Ok((format, access))
     }
 
@@ -574,7 +574,7 @@ impl<'a> Lexer<'a> {
                     return Err(Box::new(Error::UnknownAttribute(span)));
                 };
                 self.skip(Token::Separator(','));
-                self.expect(Token::Paren('>'))?;
+                self.expect_generic_paren('>')?;
                 ret
             } else {
                 false
