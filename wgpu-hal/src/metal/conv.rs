@@ -1,9 +1,10 @@
 use metal::{
-    MTLBlendFactor, MTLBlendOperation, MTLBlitOption, MTLClearColor, MTLColorWriteMask,
-    MTLCompareFunction, MTLCullMode, MTLOrigin, MTLPrimitiveTopologyClass, MTLPrimitiveType,
-    MTLRenderStages, MTLResourceUsage, MTLSamplerAddressMode, MTLSamplerBorderColor,
-    MTLSamplerMinMagFilter, MTLSize, MTLStencilOperation, MTLStoreAction, MTLTextureType,
-    MTLTextureUsage, MTLVertexFormat, MTLVertexStepFunction, MTLWinding, NSRange,
+    ArgumentDescriptor, MTLArgumentAccess, MTLBlendFactor, MTLBlendOperation, MTLBlitOption,
+    MTLClearColor, MTLColorWriteMask, MTLCompareFunction, MTLCullMode, MTLDataType, MTLOrigin,
+    MTLPrimitiveTopologyClass, MTLPrimitiveType, MTLRenderStages, MTLResourceUsage,
+    MTLSamplerAddressMode, MTLSamplerBorderColor, MTLSamplerMinMagFilter, MTLSize,
+    MTLStencilOperation, MTLStoreAction, MTLTextureType, MTLTextureUsage, MTLVertexFormat,
+    MTLVertexStepFunction, MTLWinding, NSRange,
 };
 
 pub fn map_texture_usage(format: wgt::TextureFormat, usage: wgt::TextureUses) -> MTLTextureUsage {
@@ -350,6 +351,41 @@ pub fn map_resource_usage(ty: &wgt::BindingType) -> MTLResourceUsage {
             }
         },
         wgt::BindingType::Sampler(..) => MTLResourceUsage::empty(),
+        wgt::BindingType::Buffer { ty, .. } => match ty {
+            wgt::BufferBindingType::Uniform => MTLResourceUsage::Read,
+            wgt::BufferBindingType::Storage { read_only } => {
+                if *read_only {
+                    MTLResourceUsage::Read
+                } else {
+                    MTLResourceUsage::Read | MTLResourceUsage::Write
+                }
+            }
+        },
         _ => unreachable!(),
     }
+}
+
+pub fn map_buffer_binding_access(ty: &wgt::BufferBindingType) -> MTLArgumentAccess {
+    match ty {
+        wgt::BufferBindingType::Uniform => MTLArgumentAccess::ReadOnly,
+        wgt::BufferBindingType::Storage { read_only } => {
+            if *read_only {
+                MTLArgumentAccess::ReadOnly
+            } else {
+                MTLArgumentAccess::ReadWrite
+            }
+        }
+    }
+}
+
+pub fn pointer_array_argument_descriptor(
+    count: u32,
+    access: MTLArgumentAccess,
+) -> &'static metal::ArgumentDescriptorRef {
+    let desc = ArgumentDescriptor::new();
+    desc.set_data_type(MTLDataType::Pointer);
+    desc.set_index(0);
+    desc.set_array_length(count as u64);
+    desc.set_access(access);
+    desc
 }

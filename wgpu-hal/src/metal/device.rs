@@ -10,10 +10,10 @@ use crate::metal::ShaderModuleSource;
 use crate::TlasInstance;
 
 use metal::{
-    foreign_types::ForeignType, MTLCommandBufferStatus, MTLDepthClipMode, MTLLanguageVersion,
-    MTLMutability, MTLPixelFormat, MTLPrimitiveTopologyClass, MTLResourceID, MTLResourceOptions,
-    MTLSamplerAddressMode, MTLSamplerMipFilter, MTLSize, MTLStorageMode, MTLTextureType,
-    MTLTriangleFillMode, MTLVertexStepFunction, NSRange,
+    foreign_types::ForeignType, Array, MTLCommandBufferStatus, MTLDepthClipMode,
+    MTLLanguageVersion, MTLMutability, MTLPixelFormat, MTLPrimitiveTopologyClass, MTLResourceID,
+    MTLResourceOptions, MTLSamplerAddressMode, MTLSamplerMipFilter, MTLSize, MTLStorageMode,
+    MTLTextureType, MTLTriangleFillMode, MTLVertexStepFunction, NSRange,
 };
 
 type DeviceResult<T> = Result<T, crate::DeviceError>;
@@ -883,7 +883,7 @@ impl crate::Device for super::Device {
                         let uses = conv::map_resource_usage(&layout.ty);
 
                         // Create argument buffer for this array
-                        let buffer = self.shared.device.lock().new_buffer(
+                        let mut argument_buffer = self.shared.device.lock().new_buffer(
                             8 * count as u64,
                             MTLResourceOptions::HazardTrackingModeUntracked
                                 | MTLResourceOptions::StorageModeShared,
@@ -891,7 +891,7 @@ impl crate::Device for super::Device {
 
                         let contents: &mut [MTLResourceID] = unsafe {
                             core::slice::from_raw_parts_mut(
-                                buffer.contents().cast(),
+                                argument_buffer.contents().cast(),
                                 count as usize,
                             )
                         };
@@ -927,13 +927,52 @@ impl crate::Device for super::Device {
                                     // need to be passed to useResource
                                 }
                             }
+                            wgt::BindingType::Buffer { ty, .. } => {
+                                let buffers = &desc.buffers[entry.resource_index as usize..]
+                                    [..count as usize];
+                                let device = self.shared.device.lock();
+                                let arg_desc = conv::pointer_array_argument_descriptor(
+                                    count,
+                                    conv::map_buffer_binding_access(&ty),
+                                );
+
+                                let encoder =
+                                    device.new_argument_encoder(Array::from_slice(&[arg_desc]));
+                                let aligned_length = wgt::math::align_to(
+                                    encoder.encoded_length() as u32,
+                                    encoder.alignment() as u32,
+                                );
+                                argument_buffer = device.new_buffer(
+                                    aligned_length as u64,
+                                    MTLResourceOptions::HazardTrackingModeUntracked
+                                        | MTLResourceOptions::StorageModeShared,
+                                );
+                                encoder.set_argument_buffer(&argument_buffer, 0);
+
+                                for (idx, source) in buffers.iter().enumerate() {
+                                    encoder.set_buffer(
+                                        idx as u64,
+                                        &source.buffer.raw,
+                                        source.offset,
+                                    );
+
+                                    let use_info = bg
+                                        .resources_to_use
+                                        .entry(source.buffer.as_raw().cast())
+                                        .or_default();
+                                    use_info.stages |= stages;
+                                    use_info.uses |= uses;
+                                    use_info.visible_in_compute |=
+                                        layout.visibility.contains(wgt::ShaderStages::COMPUTE);
+                                }
+                            }
                             _ => {
                                 unimplemented!();
                             }
                         }
 
                         bg.buffers.push(super::BufferResource {
-                            ptr: unsafe { NonNull::new_unchecked(buffer.as_ptr()) },
+                            ptr: unsafe { NonNull::new_unchecked(argument_buffer.as_ptr()) },
                             offset: 0,
                             dynamic_index: None,
                             binding_size: None,
@@ -941,7 +980,7 @@ impl crate::Device for super::Device {
                         });
                         counter.buffers += 1;
 
-                        bg.argument_buffers.push(buffer)
+                        bg.argument_buffers.push(argument_buffer)
                     }
                     // Bindfull path
                     else {
