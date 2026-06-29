@@ -42,6 +42,12 @@ Bottom level categories:
 
 ## Unreleased
 
+### New Features
+
+#### Metal
+
+- Added support for bindless storage buffers (buffer binding arrays) on Metal. Backport of [#9081](https://github.com/gfx-rs/wgpu/pull/9081) by @mate-h onto v29.
+
 ## v29.0.4 (2026-07-01)
 
 ### New Features
