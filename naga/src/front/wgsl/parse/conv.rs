@@ -19,6 +19,10 @@ pub fn map_address_space<'a>(
             access: crate::StorageAccess::default(),
         }),
         "immediate" => Ok(crate::AddressSpace::Immediate),
+        // Accept the pre-wgpu-29 `push_constant` keyword as an alias for
+        // `immediate`, so WGSL emitted by wesl 0.3.x (which only knows
+        // `push_constant`) still parses against naga 29.
+        "push_constant" => Ok(crate::AddressSpace::Immediate),
         "function" => Ok(crate::AddressSpace::Function),
         "task_payload" => {
             enable_extensions.require(ImplementedEnableExtension::WgpuMeshShader, span)?;
